@@ -1,59 +1,29 @@
 pipeline {
 	agent any
+	environment {
+		project_path = "spring-boot-samples/spring-boot-sample-atmosphere"
+	}
 	stages {
         	stage('compile, test and package') {
         		steps {
+			dir(project_path) {
             			sh 'mvn clean package'
 			}
+            	}
         	}
-               stage('SonarQube analysis') { 
-                        steps {
-                                withSonarQubeEnv('Sonar') {
-                                        script {
-                                        sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.3.0.603:sonar ' + 
-                                        '-f pom.xml ' +
-                                        '-Dsonar.projectKey=com.petclinic:all:master ' +
-                                        '-Dsonar.login=admin ' +
-                                        '-Dsonar.password=admin ' +
-                                        '-Dsonar.language=java ' +
-                                        '-Dsonar.sources=. ' +
-                                        '-Dsonar.tests=. ' +
-                                        '-Dsonar.test.inclusions=**/*Test*/** ' +
-                                        '-Dsonar.exclusions=**/*Test*/** '
-                                        }
-                                }
-                                script {
-                                        sleep 30
-                                                timeout(time: 1, unit: 'HOURS') {  
-                                                def qg = waitForQualityGate()
-                                                        if (qg.status != 'OK') {
-                                                                error "Pipeline aborted due to quality gate failure: ${qg.status}"
-                                                        }
-                                                }
-                                }
-                        }
-                }
-               /* stage("SonarQube Quality Gate") { 
-                        steps {
-                                script {
-                                        timeout(time: 1, unit: 'HOURS') {  
-                                                def qg = waitForQualityGate()
-                                                if (qg.status != 'OK') {
-                                                        error "Pipeline aborted due to quality gate failure: ${qg.status}"
-                                                }
-                                        }
-                                }
-                        }
-                } */
         	stage('archival') {
         		steps {
-            	 		archiveArtifacts 'target/*.?ar'
+			dir(project_path) {
+            	 		archiveArtifacts 'target/*.jar'
             		}
+		}
         	}
         	stage('unit test') {
         		steps {
+			dir(project_path) {
 		            	junit 'target/surefire-reports/*.xml'
             		}
+		}
         	}
 	}
 	post { 
